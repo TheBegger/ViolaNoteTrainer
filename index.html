@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bratschen-Notentrainer · 1. Lage</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #dbe2ea;
+      --button: #111827;
+      --buttonText: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      gap: 24px;
+      grid-template-columns: 1.45fr 0.95fr;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 24px 24px 0 24px;
+    }
+    h1, h2 {
+      margin: 0;
+      line-height: 1.2;
+    }
+    h1 { font-size: 32px; }
+    h2 { font-size: 24px; }
+    .card-body {
+      padding: 24px;
+    }
+    .staff-box, .info-box, .stat, .reveal, .help {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: #fff;
+    }
+    .staff-box { padding: 16px; }
+    canvas { width: 100%; height: auto; display: block; }
+    .stats, .reveals {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .stat, .reveal { padding: 16px; }
+    .label {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .value.small { font-size: 24px; }
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    button {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 600;
+      background: #fff;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--button);
+      color: var(--buttonText);
+      border-color: var(--button);
+    }
+    button:hover { filter: brightness(0.98); }
+    .setting + .setting { margin-top: 24px; }
+    .setting-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    input[type="range"] { width: 100%; }
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font: inherit;
+    }
+    .help {
+      padding: 16px;
+      margin-top: 24px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #475569;
+    }
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+      .stats, .reveals { grid-template-columns: 1fr; }
+      h1 { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card">
+      <div class="card-header">
+        <h1>Bratschen-Notentrainer · 1. Lage</h1>
+      </div>
+      <div class="card-body">
+        <div class="staff-box">
+          <canvas id="staff" width="900" height="330"></canvas>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Phase</div>
+            <div class="value" id="phaseValue">Spielen</div>
+          </div>
+          <div class="stat">
+            <div class="label">Zeit</div>
+            <div class="value" id="timeValue">5s</div>
+          </div>
+          <div class="stat">
+            <div class="label">Aktuelle Note</div>
+            <div class="value" id="noteValue">?</div>
+          </div>
+        </div>
+
+        <div class="reveals" id="revealGrid" hidden>
+          <div class="reveal">
+            <div class="label">Tonname</div>
+            <div class="value small" id="revealName">C4</div>
+          </div>
+          <div class="reveal">
+            <div class="label">Saite</div>
+            <div class="value small" id="revealString">G-Saite</div>
+          </div>
+          <div class="reveal">
+            <div class="label">Finger</div>
+            <div class="value small" id="revealFinger">3. Finger</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="primary" id="startBtn">Start</button>
+          <button id="nextBtn">Nächste Note</button>
+          <button id="playBtn">Ton abspielen</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card">
+      <div class="card-header">
+        <h2>Einstellungen</h2>
+      </div>
+      <div class="card-body">
+        <div class="setting">
+          <div class="setting-title">Spiel-Zeit: <span id="playSecondsLabel">5</span>s</div>
+          <input id="playSlider" type="range" min="2" max="12" step="1" value="5">
+        </div>
+
+        <div class="setting">
+          <div class="setting-title">Auflösungs-Zeit: <span id="revealSecondsLabel">5</span>s</div>
+          <input id="revealSlider" type="range" min="2" max="12" step="1" value="5">
+        </div>
+
+        <div class="setting">
+          <div class="setting-title">Bereich</div>
+          <select id="rangeSelect">
+            <option value="full">Komplette 1. Lage</option>
+            <option value="c-string">Nur C-Saite</option>
+            <option value="g-string">Nur G-Saite</option>
+            <option value="d-string">Nur D-Saite</option>
+            <option value="a-string">Nur A-Saite</option>
+          </select>
+        </div>
+
+        <div class="help">
+          Ablauf: Note wird im Altschlüssel gezeigt → du spielst → nach Ablauf kommt Auflösung mit Ton, Saite und Finger → danach nächste Note.
+        </div>
+        <div class="footer-note">Für GitHub Pages reicht diese eine Datei als <strong>index.html</strong>.</div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const NOTES = [
+      { id: "c3", note: "C", octave: 3, semitone: 0, label: "C3", string: "C-Saite", finger: "0 / leer" },
+      { id: "d3", note: "D", octave: 3, semitone: 2, label: "D3", string: "C-Saite", finger: "1. Finger" },
+      { id: "e3", note: "E", octave: 3, semitone: 4, label: "E3", string: "C-Saite", finger: "hoher 2. Finger" },
+      { id: "f3", note: "F", octave: 3, semitone: 5, label: "F3", string: "C-Saite", finger: "3. Finger" },
+      { id: "g3", note: "G", octave: 3, semitone: 7, label: "G3", string: "G-Saite", finger: "0 / leer" },
+      { id: "a3", note: "A", octave: 3, semitone: 9, label: "A3", string: "G-Saite", finger: "1. Finger" },
+      { id: "b3", note: "B", octave: 3, semitone: 11, label: "B3", string: "G-Saite", finger: "hoher 2. Finger" },
+      { id: "c4", note: "C", octave: 4, semitone: 0, label: "C4", string: "G-Saite", finger: "3. Finger" },
+      { id: "d4", note: "D", octave: 4, semitone: 2, label: "D4", string: "D-Saite", finger: "0 / leer" },
+      { id: "e4", note: "E", octave: 4, semitone: 4, label: "E4", string: "D-Saite", finger: "1. Finger" },
+      { id: "f4", note: "F", octave: 4, semitone: 5, label: "F4", string: "D-Saite", finger: "tiefer 2. Finger" },
+      { id: "g4", note: "G", octave: 4, semitone: 7, label: "G4", string: "D-Saite", finger: "3. Finger" },
+      { id: "a4", note: "A", octave: 4, semitone: 9, label: "A4", string: "A-Saite", finger: "0 / leer" },
+      { id: "b4", note: "B", octave: 4, semitone: 11, label: "B4", string: "A-Saite", finger: "1. Finger" },
+      { id: "c5", note: "C", octave: 5, semitone: 0, label: "C5", string: "A-Saite", finger: "tiefer 2. Finger" },
+      { id: "d5", note: "D", octave: 5, semitone: 2, label: "D5", string: "A-Saite", finger: "3. Finger" },
+      { id: "e5", note: "E", octave: 5, semitone: 4, label: "E5", string: "A-Saite", finger: "4. Finger" }
+    ];
+
+    let playSeconds = 5;
+    let revealSeconds = 5;
+    let isRunning = false;
+    let phase = "play";
+    let timeLeft = playSeconds;
+    let range = "full";
+    let timerId = null;
+    let currentNote = null;
+    let audioCtx = null;
+
+    const staff = document.getElementById("staff");
+    const phaseValue = document.getElementById("phaseValue");
+    const timeValue = document.getElementById("timeValue");
+    const noteValue = document.getElementById("noteValue");
+    const revealGrid = document.getElementById("revealGrid");
+    const revealName = document.getElementById("revealName");
+    const revealString = document.getElementById("revealString");
+    const revealFinger = document.getElementById("revealFinger");
+    const startBtn = document.getElementById("startBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const playBtn = document.getElementById("playBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const playSlider = document.getElementById("playSlider");
+    const revealSlider = document.getElementById("revealSlider");
+    const playSecondsLabel = document.getElementById("playSecondsLabel");
+    const revealSecondsLabel = document.getElementById("revealSecondsLabel");
+    const rangeSelect = document.getElementById("rangeSelect");
+
+    function filteredNotes() {
+      if (range === "c-string") return NOTES.filter(n => n.string === "C-Saite");
+      if (range === "g-string") return NOTES.filter(n => n.string === "G-Saite");
+      if (range === "d-string") return NOTES.filter(n => n.string === "D-Saite");
+      if (range === "a-string") return NOTES.filter(n => n.string === "A-Saite");
+      return NOTES;
+    }
+
+    function randomItem(list, excludeId = null) {
+      const pool = excludeId ? list.filter(x => x.id !== excludeId) : list;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function midiFromNote(note, octave, semitone = null) {
+      const map = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+      const value = semitone ?? map[note];
+      return (octave + 1) * 12 + value;
+    }
+
+    function freqFromMidi(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    function ensureAudioContext() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    function playCurrentTone() {
+      const ctx = ensureAudioContext();
+      const midi = midiFromNote(currentNote.note, currentNote.octave, currentNote.semitone);
+      const freq = freqFromMidi(midi);
+      const now = ctx.currentTime;
+      const duration = 2.8;
+
+      const master = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(2200, now);
+      filter.Q.setValueAtTime(0.7, now);
+
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.16, now + 0.04);
+      master.gain.exponentialRampToValueAtTime(0.08, now + 0.18);
+      master.gain.exponentialRampToValueAtTime(0.06, now + 0.6);
+      master.gain.setValueAtTime(0.06, now + 2.2);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      const partials = [
+        { ratio: 1, gain: 0.8, type: "sawtooth" },
+        { ratio: 2, gain: 0.22, type: "triangle" },
+        { ratio: 3, gain: 0.12, type: "sine" }
+      ];
+
+      partials.forEach((partial) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = partial.type;
+        osc.frequency.setValueAtTime(freq * partial.ratio, now);
+        gain.gain.setValueAtTime(partial.gain, now);
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(now);
+        osc.stop(now + duration + 0.05);
+      });
+
+      master.connect(filter);
+      filter.connect(ctx.destination);
+    }
+
+    function drawAltoClefStaff(canvas, noteObj) {
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = "#111827";
+      ctx.lineWidth = 2;
+
+      const left = 70;
+      const right = w - 40;
+      const lineGap = 24;
+      const centerY = h / 2;
+      const lines = [-2, -1, 0, 1, 2].map(i => centerY + i * lineGap);
+
+      lines.forEach((y) => {
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(right, y);
+        ctx.stroke();
+      });
+
+      ctx.fillStyle = "#111827";
+      ctx.font = "92px serif";
+      ctx.textBaseline = "middle";
+      ctx.fillText("𝄡", 18, centerY);
+
+      if (!noteObj) return;
+
+      const staffSteps = {
+        C3: -7,
+        D3: -6,
+        E3: -5,
+        F3: -4,
+        G3: -3,
+        A3: -2,
+        B3: -1,
+        C4: 0,
+        D4: 1,
+        E4: 2,
+        F4: 3,
+        G4: 4,
+        A4: 5,
+        B4: 6,
+        C5: 7,
+        D5: 8,
+        E5: 9
+      };
+
+      const step = staffSteps[noteObj.label];
+      const y = centerY - step * (lineGap / 2);
+      const x = w * 0.62;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((-20 * Math.PI) / 180);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 15, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.moveTo(x + 12, y - 1);
+      ctx.lineTo(x + 12, y - 62);
+      ctx.stroke();
+
+      const ledgerYs = [];
+      if (y < lines[0]) {
+        for (let ly = lines[0] - lineGap; ly >= y - 2; ly -= lineGap) ledgerYs.push(ly);
+      }
+      if (y > lines[4]) {
+        for (let ly = lines[4] + lineGap; ly <= y + 2; ly += lineGap) ledgerYs.push(ly);
+      }
+
+      ledgerYs.forEach((ly) => {
+        ctx.beginPath();
+        ctx.moveTo(x - 26, ly);
+        ctx.lineTo(x + 26, ly);
+        ctx.stroke();
+      });
+    }
+
+    function updateUI() {
+      phaseValue.textContent = phase === "play" ? "Spielen" : "Auflösung";
+      timeValue.textContent = `${timeLeft}s`;
+      noteValue.textContent = phase === "play" ? "?" : currentNote.label;
+      revealGrid.hidden = phase !== "reveal";
+      revealName.textContent = currentNote.label;
+      revealString.textContent = currentNote.string;
+      revealFinger.textContent = currentNote.finger;
+      startBtn.textContent = isRunning ? "Pause" : "Start";
+      drawAltoClefStaff(staff, currentNote);
+    }
+
+    function nextNote() {
+      currentNote = randomItem(filteredNotes(), currentNote?.id);
+      phase = "play";
+      timeLeft = playSeconds;
+      updateUI();
+    }
+
+    function stopTimer() {
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerId = setInterval(() => {
+        if (timeLeft > 1) {
+          timeLeft -= 1;
+          updateUI();
+          return;
+        }
+
+        if (phase === "play") {
+          phase = "reveal";
+          timeLeft = revealSeconds;
+          playCurrentTone();
+          updateUI();
+          return;
+        }
+
+        currentNote = randomItem(filteredNotes(), currentNote?.id);
+        phase = "play";
+        timeLeft = playSeconds;
+        updateUI();
+      }, 1000);
+    }
+
+    startBtn.addEventListener("click", () => {
+      if (!isRunning) ensureAudioContext();
+      isRunning = !isRunning;
+      if (isRunning) startTimer(); else stopTimer();
+      updateUI();
+    });
+
+    nextBtn.addEventListener("click", nextNote);
+    playBtn.addEventListener("click", () => {
+      ensureAudioContext();
+      playCurrentTone();
+    });
+    resetBtn.addEventListener("click", () => {
+      isRunning = false;
+      stopTimer();
+      currentNote = randomItem(filteredNotes());
+      phase = "play";
+      timeLeft = playSeconds;
+      updateUI();
+    });
+
+    playSlider.addEventListener("input", (e) => {
+      playSeconds = Number(e.target.value);
+      playSecondsLabel.textContent = playSeconds;
+      if (phase === "play") timeLeft = playSeconds;
+      updateUI();
+    });
+
+    revealSlider.addEventListener("input", (e) => {
+      revealSeconds = Number(e.target.value);
+      revealSecondsLabel.textContent = revealSeconds;
+      if (phase === "reveal") timeLeft = revealSeconds;
+      updateUI();
+    });
+
+    rangeSelect.addEventListener("change", (e) => {
+      range = e.target.value;
+      currentNote = randomItem(filteredNotes());
+      phase = "play";
+      timeLeft = playSeconds;
+      updateUI();
+    });
+
+    currentNote = randomItem(filteredNotes());
+    updateUI();
+  </script>
+</body>
+</html>
