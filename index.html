@@ -418,13 +418,16 @@
       timeValue.textContent = `${timeLeft}s`;
       noteValue.textContent = phase === "play" ? "?" : currentNote.label;
 
-      // Reveal nur in Auflösung anzeigen
-      revealGrid.hidden = phase !== "reveal";
-
       if (phase === "reveal") {
+        revealGrid.style.display = "grid";
         revealName.textContent = currentNote.label;
         revealString.textContent = currentNote.string;
         revealFinger.textContent = currentNote.finger;
+      } else {
+        revealGrid.style.display = "none";
+        revealName.textContent = "";
+        revealString.textContent = "";
+        revealFinger.textContent = "";
       }
 
       startBtn.textContent = isRunning ? "Pause" : "Start";
