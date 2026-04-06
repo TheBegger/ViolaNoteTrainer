@@ -417,10 +417,16 @@
       phaseValue.textContent = phase === "play" ? "Spielen" : "Auflösung";
       timeValue.textContent = `${timeLeft}s`;
       noteValue.textContent = phase === "play" ? "?" : currentNote.label;
+
+      // Reveal nur in Auflösung anzeigen
       revealGrid.hidden = phase !== "reveal";
-      revealName.textContent = currentNote.label;
-      revealString.textContent = currentNote.string;
-      revealFinger.textContent = currentNote.finger;
+
+      if (phase === "reveal") {
+        revealName.textContent = currentNote.label;
+        revealString.textContent = currentNote.string;
+        revealFinger.textContent = currentNote.finger;
+      }
+
       startBtn.textContent = isRunning ? "Pause" : "Start";
       drawAltoClefStaff(staff, currentNote);
     }
